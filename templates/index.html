@@ -66,7 +66,7 @@
         <p>All fields are required for accurate prediction.</p>
       </div>
 
-      <form action="/predict" method="POST" class="loan-form">
+      <form id="loanForm" action="/predict" method="POST" class="loan-form">
 
         <!-- ── Section 1: Personal Info ── -->
         <div class="form-section">
@@ -231,3 +231,11 @@
   <footer class="footer">
     <p>LoanPredict AI · Built with Python, Flask &amp; Scikit-learn · For educational purposes only</p>
   </footer>
+
+  <script>
+document.querySelector(".btn-reset").addEventListener("click", function(e) {
+    e.preventDefault();
+    document.getElementById("loanForm").reset();
+    window.location.href = "/";
+});
+</script>
