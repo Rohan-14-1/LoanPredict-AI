@@ -47,6 +47,7 @@ def predict():
         loan_amount      = float(request.form.get("loan_amount", 0))
         loan_amount_term = float(request.form.get("loan_amount_term", 360))
         credit_history   = float(request.form.get("credit_history", 1))
+        total_income = applicant_income + coapplicant_income
 
         # ── Encode categorical values ───────────────────────
         gender_enc    = safe_encode(encoders["Gender"], gender)
@@ -70,6 +71,28 @@ def predict():
             loan_amount_term,
             credit_history
         ]])
+
+        # Rule 1: No income → Reject
+        if total_income <= 0:
+            return render_template(
+                "index.html",
+                prediction="Loan Not Approved",
+                approved=False,
+                confidence=0,
+                bank_offers=[],
+                form_data=request.form
+            )
+
+# Rule 2: Loan too high compared to income → Reject
+        if loan_amount > total_income * 20:
+           return render_template(
+              "index.html",
+               prediction="Loan Not Approved",
+               approved=False,
+               confidence=0,
+               bank_offers=[],
+               form_data=request.form
+            )
 
         # ── Prediction ───────────────────────────────────────
         prediction_code = model.predict(features)[0]
