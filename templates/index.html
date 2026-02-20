@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loan Eligibility Predictor</title>
+  <link rel="stylesheet" href="static\style.css">
+</head>
+<body>
+
+  <!-- ── Top Navigation Bar ── -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="nav-icon">🏦</span>
+      <span>LoanPredict AI</span>
+    </div>
+    <span class="nav-tagline">Smart Loan Eligibility Checker</span>
+  </nav>
+
+  <!-- ── Hero Section ── -->
+  <header class="hero">
+    <div class="hero-content">
+      <h1>Will Your Loan <span class="highlight">Be Approved?</span></h1>
+      <p>Fill in your details below and our AI model will predict your loan eligibility in seconds.</p>
+    </div>
+    <div class="hero-badges">
+      <span class="badge">🤖 ML-Powered</span>
+      <span class="badge">⚡ Instant Result</span>
+      <span class="badge">🔒 Secure</span>
+    </div>
+  </header>
+
+  <!-- ── Main Content ── -->
+  <main class="main-wrapper">
+
+    <!-- ── Prediction Result Banner ── -->
+    {% if prediction %}
+    <div class="result-banner {{ 'result-approved' if approved else 'result-denied' }}">
+      <div class="result-icon">{{ '✅' if approved else '❌' }}</div>
+      <div class="result-text">
+        <h2>{{ prediction }}</h2>
+        {% if confidence %}
+          <p>Model confidence: <strong>{{ confidence }}%</strong></p>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ── Form Card ── -->
+    <div class="card">
+      <div class="card-header">
+        <h2>📋 Loan Application Form</h2>
+        <p>All fields are required for accurate prediction.</p>
+      </div>
+
+      <form action="/predict" method="POST" class="loan-form">
+
+        <!-- ── Section 1: Personal Info ── -->
+        <div class="form-section">
+          <h3 class="section-title">👤 Personal Information</h3>
+          <div class="form-grid">
+
+            <div class="form-group">
+              <label for="gender">Gender</label>
+              <select id="gender" name="gender" required>
+                <option value="">-- Select --</option>
+                <option value="Male"   {% if form_data and form_data.gender == 'Male'   %}selected{% endif %}>Male</option>
+                <option value="Female" {% if form_data and form_data.gender == 'Female' %}selected{% endif %}>Female</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="married">Marital Status</label>
+              <select id="married" name="married" required>
+                <option value="">-- Select --</option>
+                <option value="Yes" {% if form_data and form_data.married == 'Yes' %}selected{% endif %}>Married</option>
+                <option value="No"  {% if form_data and form_data.married == 'No'  %}selected{% endif %}>Single</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="dependents">Dependents</label>
+              <select id="dependents" name="dependents" required>
+                <option value="">-- Select --</option>
+                <option value="0"  {% if form_data and form_data.dependents == '0'  %}selected{% endif %}>0</option>
+                <option value="1"  {% if form_data and form_data.dependents == '1'  %}selected{% endif %}>1</option>
+                <option value="2"  {% if form_data and form_data.dependents == '2'  %}selected{% endif %}>2</option>
+                <option value="3+" {% if form_data and form_data.dependents == '3+' %}selected{% endif %}>3+</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="education">Education</label>
+              <select id="education" name="education" required>
+                <option value="">-- Select --</option>
+                <option value="Graduate"     {% if form_data and form_data.education == 'Graduate'     %}selected{% endif %}>Graduate</option>
+                <option value="Not Graduate" {% if form_data and form_data.education == 'Not Graduate' %}selected{% endif %}>Not Graduate</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="self_employed">Self Employed</label>
+              <select id="self_employed" name="self_employed" required>
+                <option value="">-- Select --</option>
+                <option value="Yes" {% if form_data and form_data.self_employed == 'Yes' %}selected{% endif %}>Yes</option>
+                <option value="No"  {% if form_data and form_data.self_employed == 'No'  %}selected{% endif %}>No</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── Section 2: Financial Info ── -->
+        <div class="form-section">
+          <h3 class="section-title">💰 Financial Information</h3>
+          <div class="form-grid">
+
+            <div class="form-group">
+              <label for="applicant_income">Applicant Income (₹/month)</label>
+              <div class="input-icon-wrap">
+                <span class="input-prefix">₹</span>
+                <input type="number" id="applicant_income" name="applicant_income"
+                       placeholder="e.g. 5000" min="0" required
+                       value="{{ form_data.applicant_income if form_data else '' }}" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="coapplicant_income">Co-applicant Income (₹/month)</label>
+              <div class="input-icon-wrap">
+                <span class="input-prefix">₹</span>
+                <input type="number" id="coapplicant_income" name="coapplicant_income"
+                       placeholder="e.g. 0" min="0" value="{{ form_data.coapplicant_income if form_data else '0' }}" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="loan_amount">Loan Amount (₹ thousands)</label>
+              <div class="input-icon-wrap">
+                <span class="input-prefix">₹K</span>
+                <input type="number" id="loan_amount" name="loan_amount"
+                       placeholder="e.g. 150" min="1" required
+                       value="{{ form_data.loan_amount if form_data else '' }}" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="loan_amount_term">Loan Term (months)</label>
+              <select id="loan_amount_term" name="loan_amount_term" required>
+                <option value="">-- Select --</option>
+                <option value="12"  {% if form_data and form_data.loan_amount_term == '12'  %}selected{% endif %}>12 months</option>
+                <option value="36"  {% if form_data and form_data.loan_amount_term == '36'  %}selected{% endif %}>36 months</option>
+                <option value="60"  {% if form_data and form_data.loan_amount_term == '60'  %}selected{% endif %}>60 months</option>
+                <option value="84"  {% if form_data and form_data.loan_amount_term == '84'  %}selected{% endif %}>84 months</option>
+                <option value="120" {% if form_data and form_data.loan_amount_term == '120' %}selected{% endif %}>120 months</option>
+                <option value="180" {% if form_data and form_data.loan_amount_term == '180' %}selected{% endif %}>180 months</option>
+                <option value="240" {% if form_data and form_data.loan_amount_term == '240' %}selected{% endif %}>240 months</option>
+                <option value="300" {% if form_data and form_data.loan_amount_term == '300' %}selected{% endif %}>300 months</option>
+                <option value="360" {% if form_data and form_data.loan_amount_term == '360' %}selected{% endif %}>360 months (30 yrs)</option>
+                <option value="480" {% if form_data and form_data.loan_amount_term == '480' %}selected{% endif %}>480 months (40 yrs)</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="credit_history">Credit History</label>
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input type="radio" name="credit_history" value="1"
+                    {% if not form_data or form_data.credit_history == '1' %}checked{% endif %} />
+                  <span class="radio-custom"></span>
+                  ✅ Good (meets guidelines)
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="credit_history" value="0"
+                    {% if form_data and form_data.credit_history == '0' %}checked{% endif %} />
+                  <span class="radio-custom"></span>
+                  ❌ Poor (does not meet guidelines)
+                </label>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── Submit ── -->
+        <div class="form-actions">
+          <button type="submit" class="btn-predict">
+            <span>🔍 Predict Loan Eligibility</span>
+          </button>
+          <button type="reset" class="btn-reset">Reset Form</button>
+        </div>
+
+      </form>
+    </div><!-- /card -->
+
+    <!-- ── Info Cards ── -->
+    <div class="info-cards">
+      <div class="info-card">
+        <div class="info-icon">📈</div>
+        <h4>ML Model</h4>
+        <p>Powered by Random Forest trained on real loan data with high accuracy.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-icon">⚡</div>
+        <h4>Instant Results</h4>
+        <p>Get your eligibility prediction in under a second.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-icon">🔒</div>
+        <h4>Private</h4>
+        <p>Your data is never stored. Predictions happen in real time.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Footer ── -->
+  <footer class="footer">
+    <p>LoanPredict AI · Built with Python, Flask &amp; Scikit-learn · For educational purposes only</p>
+  </footer>
