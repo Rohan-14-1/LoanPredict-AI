@@ -1,0 +1,346 @@
+/* ============================================================
+   style.css  –  Loan Eligibility Predictor
+   Color Palette:
+     Primary Blue   #2563EB
+     Accent Purple  #7C3AED
+     Success Green  #16A34A
+     Danger Red     #DC2626
+     BG Light       #F0F4FF
+============================================================ */
+
+/* ── Reset & Base ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #F0F4FF;
+  color: #1E293B;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Navbar ─────────────────────────────────────────────────── */
+.navbar {
+  background: linear-gradient(135deg, #1E40AF 0%, #7C3AED 100%);
+  padding: 0.9rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 12px rgba(30,64,175,.35);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.nav-icon { font-size: 1.5rem; }
+
+.nav-tagline {
+  color: rgba(255,255,255,.75);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* ── Hero ───────────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(135deg, #1E40AF 0%, #7C3AED 100%);
+  color: #fff;
+  padding: 3rem 2rem 4.5rem;
+  text-align: center;
+  clip-path: ellipse(100% 100% at 50% 0%);
+}
+
+.hero-content h1 {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 0.8rem;
+}
+
+.highlight {
+  background: linear-gradient(90deg, #FCD34D, #F97316);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-content p {
+  font-size: 1.05rem;
+  opacity: 0.88;
+  max-width: 520px;
+  margin: 0 auto 1.5rem;
+}
+
+.hero-badges {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  background: rgba(255,255,255,.18);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.3);
+  color: #fff;
+  padding: 0.35rem 1rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+/* ── Main Wrapper ───────────────────────────────────────────── */
+.main-wrapper {
+  max-width: 860px;
+  width: 100%;
+  margin: 1.5rem auto 2rem;
+  padding: 0 1rem;
+  flex: 1;
+}
+
+/* ── Result Banner ──────────────────────────────────────────── */
+.result-banner {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 1.25rem 1.75rem;
+  border-radius: 16px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 6px 24px rgba(0,0,0,.12);
+  animation: slideIn 0.4s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.result-approved {
+  background: linear-gradient(135deg, #DCFCE7, #BBF7D0);
+  border: 2px solid #16A34A;
+  color: #14532D;
+}
+
+.result-denied {
+  background: linear-gradient(135deg, #FEE2E2, #FECACA);
+  border: 2px solid #DC2626;
+  color: #7F1D1D;
+}
+
+.result-icon { font-size: 2.8rem; }
+
+.result-text h2 { font-size: 1.5rem; font-weight: 800; }
+.result-text p  { font-size: 0.9rem; margin-top: 0.2rem; opacity: 0.85; }
+
+/* ── Card ───────────────────────────────────────────────────── */
+.card {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(30,64,175,.1);
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.card-header {
+  background: linear-gradient(135deg, #EEF2FF, #F5F3FF);
+  padding: 1.6rem 2rem 1.4rem;
+  border-bottom: 1px solid #E0E7FF;
+}
+
+.card-header h2 { font-size: 1.3rem; font-weight: 700; color: #1E40AF; }
+.card-header p  { font-size: 0.88rem; color: #64748B; margin-top: 0.3rem; }
+
+/* ── Form ───────────────────────────────────────────────────── */
+.loan-form { padding: 1.8rem 2rem 2rem; }
+
+.form-section { margin-bottom: 2rem; }
+
+.section-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #7C3AED;
+  margin-bottom: 1.1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid #EDE9FE;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.2rem;
+}
+
+.form-group { display: flex; flex-direction: column; gap: 0.45rem; }
+.form-group.full-width { grid-column: 1 / -1; }
+
+label {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: #374151;
+  letter-spacing: 0.2px;
+}
+
+select, input[type="number"] {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border: 2px solid #E2E8F0;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  color: #1E293B;
+  background: #F8FAFC;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236B7280' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  padding-right: 2.2rem;
+}
+
+select:focus, input[type="number"]:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+  background: #fff;
+}
+
+/* ── Input with prefix icon ─────────────────────────────────── */
+.input-icon-wrap { position: relative; }
+.input-prefix {
+  position: absolute;
+  left: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #64748B;
+  pointer-events: none;
+}
+.input-icon-wrap input { padding-left: 2.6rem; }
+
+/* ── Radio Group ────────────────────────────────────────────── */
+.radio-group { display: flex; gap: 1.2rem; flex-wrap: wrap; }
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.6rem 1.1rem;
+  border: 2px solid #E2E8F0;
+  border-radius: 10px;
+  background: #F8FAFC;
+  transition: all 0.2s;
+}
+
+.radio-label:has(input:checked) {
+  border-color: #2563EB;
+  background: #EFF6FF;
+  color: #1D4ED8;
+}
+
+.radio-label input[type="radio"] { display: none; }
+
+/* ── Submit Buttons ──────────────────────────────────────────── */
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-predict {
+  flex: 1;
+  min-width: 200px;
+  background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
+  color: #fff;
+  border: none;
+  padding: 0.9rem 1.8rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  box-shadow: 0 4px 16px rgba(37,99,235,.4);
+}
+
+.btn-predict:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37,99,235,.5);
+}
+
+.btn-predict:active { transform: translateY(0); }
+
+.btn-reset {
+  padding: 0.9rem 1.6rem;
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  background: #fff;
+  color: #64748B;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.btn-reset:hover { border-color: #94A3B8; color: #374151; }
+
+/* ── Info Cards ─────────────────────────────────────────────── */
+.info-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.info-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(30,64,175,.08);
+  transition: transform 0.2s;
+}
+
+.info-card:hover { transform: translateY(-4px); }
+
+.info-icon { font-size: 2rem; margin-bottom: 0.6rem; }
+.info-card h4 { font-size: 1rem; font-weight: 700; color: #1E40AF; margin-bottom: 0.4rem; }
+.info-card p  { font-size: 0.83rem; color: #64748B; line-height: 1.5; }
+
+/* ── Footer ─────────────────────────────────────────────────── */
+.footer {
+  background: #1E293B;
+  color: rgba(255,255,255,.55);
+  text-align: center;
+  padding: 1.1rem 1rem;
+  font-size: 0.82rem;
+  margin-top: auto;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .hero { padding: 2.5rem 1.2rem 3.5rem; clip-path: none; }
+  .main-wrapper { margin-top: 1rem; }
+  .loan-form { padding: 1.2rem 1rem; }
+  .card-header { padding: 1.2rem 1rem; }
+  .form-grid { grid-template-columns: 1fr; }
+  .radio-group { flex-direction: column; }
+  .nav-tagline { display: none; }
+}
