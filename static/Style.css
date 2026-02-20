@@ -344,3 +344,35 @@ select:focus, input[type="number"]:focus {
   .radio-group { flex-direction: column; }
   .nav-tagline { display: none; }
 }
+
+.bank-section {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  margin-bottom: 2rem;
+}
+
+.bank-section h3 {
+  color: #1E40AF;
+  margin-bottom: 1rem;
+}
+
+.bank-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.bank-card {
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 1rem;
+  background: #F8FAFC;
+  transition: 0.2s;
+}
+
+.bank-card:hover {
+  border-color: #2563EB;
+  transform: translateY(-3px);
+}

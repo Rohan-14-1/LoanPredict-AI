@@ -1,8 +1,5 @@
 # ============================================================
-# app.py  –  Loan Eligibility Prediction  |  Flask Backend
-# Routes:
-#   GET  /          → Render the prediction form
-#   POST /predict   → Accept form data, return prediction
+# app.py – Loan Eligibility Prediction | Flask Backend
 # ============================================================
 
 from flask import Flask, render_template, request
@@ -22,9 +19,9 @@ model    = artifact["model"]
 encoders = artifact["encoders"]
 FEATURES = artifact["features"]
 
+
 # ─── Helper: safely encode a value with a LabelEncoder ──────
 def safe_encode(encoder, value):
-    """Return encoded integer; fall back to 0 for unseen labels."""
     classes = list(encoder.classes_)
     return classes.index(value) if value in classes else 0
 
@@ -32,22 +29,14 @@ def safe_encode(encoder, value):
 # ─── Route: Home ─────────────────────────────────────────────
 @app.route("/")
 def index():
-    """Render the loan application form."""
     return render_template("index.html", prediction=None)
 
 
 # ─── Route: Predict ──────────────────────────────────────────
 @app.route("/predict", methods=["POST"])
 def predict():
-    """
-    Read form values → encode → run model → show result.
-    Expected form fields (all strings from the HTML form):
-        gender, married, dependents, education, self_employed,
-        applicant_income, coapplicant_income, loan_amount,
-        loan_amount_term, credit_history
-    """
     try:
-        # ── Collect raw form values ──────────────────────────
+        # ── Collect form values ─────────────────────────────
         gender           = request.form.get("gender", "Male")
         married          = request.form.get("married", "No")
         dependents_raw   = request.form.get("dependents", "0")
@@ -59,16 +48,16 @@ def predict():
         loan_amount_term = float(request.form.get("loan_amount_term", 360))
         credit_history   = float(request.form.get("credit_history", 1))
 
-        # ── Encode categorical values ────────────────────────
-        gender_enc      = safe_encode(encoders["Gender"],      gender)
-        married_enc     = safe_encode(encoders["Married"],     married)
-        education_enc   = safe_encode(encoders["Education"],   education)
-        self_emp_enc    = safe_encode(encoders["Self_Employed"], self_employed)
+        # ── Encode categorical values ───────────────────────
+        gender_enc    = safe_encode(encoders["Gender"], gender)
+        married_enc   = safe_encode(encoders["Married"], married)
+        education_enc = safe_encode(encoders["Education"], education)
+        self_emp_enc  = safe_encode(encoders["Self_Employed"], self_employed)
 
-        # Dependents: convert "3+" → 3
+        # Dependents: "3+" → 3
         dependents = int(dependents_raw.replace("3+", "3"))
 
-        # ── Build feature vector (same order as FEATURES) ────
+        # ── Feature array ────────────────────────────────────
         features = np.array([[
             gender_enc,
             married_enc,
@@ -82,40 +71,60 @@ def predict():
             credit_history
         ]])
 
-        # ── Run prediction ───────────────────────────────────
+        # ── Prediction ───────────────────────────────────────
         prediction_code = model.predict(features)[0]
         probability     = model.predict_proba(features)[0]
 
-        # encoders["Loan_Status"] classes: [N=0, Y=1]
+        bank_offers = []
+
         if prediction_code == 1:
             result   = "Loan Approved"
             approved = True
             conf     = round(probability[1] * 100, 1)
+
+            # Bank suggestions based on confidence
+            if conf >= 85:
+                bank_offers = [
+                    {"name": "HDFC Bank", "interest": "8.5% - 9.2%"},
+                    {"name": "ICICI Bank", "interest": "8.7% - 9.5%"},
+                    {"name": "State Bank of India", "interest": "8.6% - 9.1%"}
+                ]
+            elif conf >= 70:
+                bank_offers = [
+                    {"name": "Axis Bank", "interest": "9.0% - 10.5%"},
+                    {"name": "Kotak Mahindra Bank", "interest": "9.2% - 10.8%"}
+                ]
+            else:
+                bank_offers = [
+                    {"name": "NBFC / Private Lenders", "interest": "10% - 14%"}
+                ]
+
         else:
             result   = "Loan Not Approved"
             approved = False
             conf     = round(probability[0] * 100, 1)
 
+        # ── Render page ──────────────────────────────────────
         return render_template(
             "index.html",
             prediction=result,
             approved=approved,
             confidence=conf,
-            # Pass back form data so the form stays filled
+            bank_offers=bank_offers,
             form_data=request.form
         )
 
     except Exception as e:
-        # Surface any error in the template for easier debugging
         return render_template(
             "index.html",
             prediction=f"Error: {str(e)}",
             approved=False,
             confidence=None,
+            bank_offers=[],
             form_data=request.form
         )
 
 
-# ─── Entry Point ──────────────────────────────────────────────
+# ─── Run App ─────────────────────────────────────────────────
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

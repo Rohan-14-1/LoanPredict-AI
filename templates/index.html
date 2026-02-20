@@ -36,6 +36,19 @@
     <!-- ── Prediction Result Banner ── -->
     {% if prediction %}
     <div class="result-banner {{ 'result-approved' if approved else 'result-denied' }}">
+      {% if approved and bank_offers %}
+      <div class="bank-section">
+       <h3>🏦 Banks Offering Loans For You</h3>
+       <div class="bank-grid">
+          {% for bank in bank_offers %}
+          <div class="bank-card">
+            <h4>{{ bank.name }}</h4>
+            <p>Interest Rate: <strong>{{ bank.interest }}</strong></p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+{% endif %}
       <div class="result-icon">{{ '✅' if approved else '❌' }}</div>
       <div class="result-text">
         <h2>{{ prediction }}</h2>
