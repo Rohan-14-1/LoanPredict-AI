@@ -2,8 +2,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const placeholder = document.getElementById('navbar-placeholder');
     if (!placeholder) return;
 
-    // Load the navbar HTML from Flask route
-    fetch('/navbar')
+    // Load the navbar HTML from Flask route (bypassing cache)
+    fetch('/navbar', { cache: 'no-store' })
         .then(response => response.text())
         .then(html => {
             placeholder.innerHTML = html;
@@ -59,6 +59,34 @@ document.addEventListener("DOMContentLoaded", () => {
                     } else {
                         icon.classList.remove('fa-sun');
                         icon.classList.add('fa-moon');
+                    }
+                });
+            }
+
+            // --- MOBILE MENU TOGGLE ---
+            const mobileMenuBtn = placeholder.querySelector('#mobile-menu-btn');
+            const navLinks = placeholder.querySelector('.nav-links');
+            const mobileIcon = mobileMenuBtn ? mobileMenuBtn.querySelector('i') : null;
+
+            if (mobileMenuBtn && navLinks && mobileIcon) {
+                mobileMenuBtn.addEventListener('click', () => {
+                    navLinks.classList.toggle('active');
+                    
+                    if (navLinks.classList.contains('active')) {
+                        mobileIcon.classList.remove('fa-ellipsis-vertical');
+                        mobileIcon.classList.add('fa-xmark');
+                    } else {
+                        mobileIcon.classList.remove('fa-xmark');
+                        mobileIcon.classList.add('fa-ellipsis-vertical');
+                    }
+                });
+
+                // Close menu when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.nav-container') && navLinks.classList.contains('active')) {
+                        navLinks.classList.remove('active');
+                        mobileIcon.classList.remove('fa-xmark');
+                        mobileIcon.classList.add('fa-ellipsis-vertical');
                     }
                 });
             }

@@ -820,10 +820,24 @@ body.dark-theme .copyright { color: #475569; }
 }
 
 @media (max-width: 768px) {
-    .nav-links { display: none; }
-    .decision-card { flex-direction: column; gap: 24px; text-align: center; }
+    .dashboard-container { padding: 24px 16px; }
+    .card { padding: 20px; }
+    
+    .dashboard-header { flex-direction: column; align-items: flex-start !important; gap: 20px !important; }
+    .dashboard-header > div:last-child { width: 100%; justify-content: space-between; }
+    
+    .comparison-bar { flex-direction: column; text-align: center; gap: 16px; }
+    .decision-card { flex-direction: column; gap: 24px; text-align: center; padding: 24px 16px; }
+    
+    .bank-offers-card { padding: 24px 16px; }
+    .bank-grid { grid-template-columns: 1fr; }
+    
     .charts-grid { grid-template-columns: 1fr; }
     .span-full { grid-column: span 1; }
-    .metrics-grid { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: 1fr; gap: 16px; }
+    
+    .canvas-wrapper { height: 220px; }
+    .wide-chart { height: 240px; }
+    
     .footer-container { flex-direction: column; gap: 16px; text-align: center; }
 }

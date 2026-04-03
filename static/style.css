@@ -971,8 +971,6 @@ margin: 0 auto;
 .step-grid{ grid-template-columns:1fr; }
 .step-grid::before { display: none; }
 
-.nav-links{ display:none; }
-
 .menu-toggle{
 display:block;
 font-size: 24px;

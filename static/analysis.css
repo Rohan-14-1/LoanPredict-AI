@@ -733,7 +733,6 @@ body.dark-theme .bg-orb-2 { background: radial-gradient(circle, rgba(96,165,250,
 
 /* ========== RESPONSIVE ========== */
 @media(max-width:768px) {
-    .nav-links { display:none; }
     .main-content { padding:30px 16px; }
     .header-section h1 { font-size:1.8rem; }
     .card { padding:28px 20px; border-radius:18px; }
