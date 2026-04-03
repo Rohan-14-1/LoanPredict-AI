@@ -1,0 +1,21 @@
+<!-- navbar.html -->
+<nav class="navbar">
+    <div class="nav-container">
+        <div class="logo" style="cursor: pointer;" onclick="window.location.href='/'">
+            <i class="fa-solid fa-brain logo-icon"></i>
+            <span class="logo-text-dark">SmartCredit</span> <span class="logo-text-green">AI</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/analysis">Loan Analysis</a></li>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/simulator">Simulator</a></li>
+        </ul>
+        <div class="nav-right" style="display:flex; align-items:center; gap:16px;">
+            <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle Dark Mode">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+            <button class="btn-start" onclick="window.location.href='/analysis'">Start Analysis</button>
+        </div>
+    </div>
+</nav>
