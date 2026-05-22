@@ -9,7 +9,7 @@ A full-stack AI-powered loan eligibility prediction web application. Enter your 
 
 ---
 
-## ✨ Features
+## ✨ Features.
 
 - **AI-Powered Prediction** — Random Forest Classifier trained on real loan data to predict approval or rejection with confidence scores.
 - **Smart Analysis Dashboard** — Displays approval odds, primary risk factors, and personalized AI coach advice.
