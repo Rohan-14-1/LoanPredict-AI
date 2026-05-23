@@ -20,7 +20,7 @@ A full-stack AI-powered loan eligibility prediction web application. Enter your 
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack.
 
 **Backend & Machine Learning**
 - Python 3.8+
