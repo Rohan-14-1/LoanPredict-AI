@@ -35,7 +35,7 @@ A full-stack AI-powered loan eligibility prediction web application. Enter your 
 
 ---
 
-## 📁 Project Structure
+## 📁 Project Structure.
 
 ```
 LoanPredict-AI/
