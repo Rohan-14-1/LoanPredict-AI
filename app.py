@@ -1,29 +1,52 @@
 # ============================================================
-# app.py – Loan Eligibility Prediction | Flask Backend
+# app.py – Credit Risk Prediction | Flask Backend
 # ============================================================
 
 from flask import Flask, render_template, request, jsonify
 import pickle
 import numpy as np
 import os
+import logging
 
 app = Flask(__name__)
+
+# ─── Setup logging ───────────────────────────────────────────
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # ─── Load the trained model artifact ─────────────────────────
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.pkl")
 
-with open(MODEL_PATH, "rb") as f:
-    artifact = pickle.load(f)
-
-model    = artifact["model"]
-encoders = artifact["encoders"]
-FEATURES = artifact["features"]
+try:
+    with open(MODEL_PATH, "rb") as f:
+        artifact = pickle.load(f)
+    
+    model = artifact["model"]
+    encoders = artifact["encoders"]
+    FEATURES = artifact["features"]
+    categorical_features = artifact.get("categorical_features", [])
+    metrics = artifact.get("metrics", {})
+    
+    logger.info(f"✓ Model loaded successfully with {len(FEATURES)} features")
+    logger.info(f"✓ Model Accuracy: {metrics.get('test_accuracy', 'N/A')}")
+except Exception as e:
+    logger.error(f"✗ Failed to load model: {e}")
+    raise
 
 
 # ─── Helper: safely encode a value with a LabelEncoder ──────
 def safe_encode(encoder, value):
-    classes = list(encoder.classes_)
-    return classes.index(value) if value in classes else 0
+    """Safely encode a categorical value using the trained encoder."""
+    try:
+        classes = list(encoder.classes_)
+        if value in classes:
+            return classes.index(value)
+        else:
+            logger.warning(f"Value '{value}' not found in encoder classes. Using default (0)")
+            return 0
+    except Exception as e:
+        logger.error(f"Error encoding value '{value}': {e}")
+        return 0
 
 
 # ─── Route: Home ─────────────────────────────────────────────
@@ -60,254 +83,216 @@ def navbar():
 @app.route("/process_application", methods=["POST"])
 def process_application():
     """
-    Accepts JSON from the new frontend analysis form.
-    Maps incoming fields to the trained model's expected features
-    and returns a JSON prediction result.
+    Credit Risk Prediction API
+    
+    Expected JSON payload:
+    {
+        "person_age": int,
+        "person_income": float,
+        "person_home_ownership": str (RENT/OWN/MORTGAGE),
+        "person_emp_length": float,
+        "loan_intent": str (PERSONAL/EDUCATION/MEDICAL/VENTURE/DEBTCONSOLIDATION/HOMEIMPROVEMENT),
+        "loan_grade": str (A/B/C/D/E/F),
+        "loan_amnt": float,
+        "loan_int_rate": float,
+        "loan_percent_income": float,
+        "cb_person_default_on_file": str (Y/N),
+        "cb_person_cred_hist_length": int
+    }
     """
     try:
         data = request.get_json()
-
-        # ── Extract values from the new frontend payload ─────
-        monthly_income   = float(data.get("income", 0))
-        loan_amount_raw  = float(data.get("loan_amount", 0))
-        loan_term        = float(data.get("loan_term", 360))
-        cibil_score      = float(data.get("cibil_score", 750))
-        missed_payments  = int(data.get("missed_payments", 0))
-
-        # ── Map to model features ────────────────────────────
-        # Categorical defaults (not collected by new frontend)
-        gender_enc    = safe_encode(encoders["Gender"], "Male")
-        married_enc   = safe_encode(encoders["Married"], "Yes")
-        education_enc = safe_encode(encoders["Education"], "Graduate")
-        self_emp_enc  = safe_encode(encoders["Self_Employed"], "No")
-        dependents    = 0
-
-        # Numeric mappings
-        applicant_income   = monthly_income          # monthly income
-        coapplicant_income = 0                       # not collected
-        loan_amount        = loan_amount_raw / 1000  # model trained on ₹K
-        loan_amount_term   = loan_term               # in months
-
-        # Credit history: good if no missed payments, else bad
-        credit_history = 1.0 if missed_payments == 0 else 0.0
-
-        total_income = applicant_income + coapplicant_income
-
-        # ── Rule 1: No income → Reject ───────────────────────
-        if total_income <= 0:
+        
+        logger.info(f"Processing application: {data}")
+        
+        # ── Extract and validate inputs ─────────────────────
+        person_age = float(data.get("person_age", 30))
+        person_income = float(data.get("person_income", 50000))
+        person_home_ownership = data.get("person_home_ownership", "RENT")
+        person_emp_length = float(data.get("person_emp_length", 5))
+        loan_intent = data.get("loan_intent", "PERSONAL")
+        loan_grade = data.get("loan_grade", "C")
+        loan_amnt = float(data.get("loan_amnt", 10000))
+        loan_int_rate = float(data.get("loan_int_rate", 10.0))
+        loan_percent_income = float(data.get("loan_percent_income", 0.5))
+        cb_person_default_on_file = data.get("cb_person_default_on_file", "N")
+        cb_person_cred_hist_length = int(data.get("cb_person_cred_hist_length", 3))
+        
+        # ── Validate basic constraints ──────────────────────
+        if person_income <= 0:
             return jsonify({
                 "status": "rejected",
                 "odds": 0,
-                "main_issue": "No income reported",
-                "coach_advice": "The applicant has reported zero income. Loan cannot be approved without verified income sources."
-            })
-
-        # ── Rule 2: Loan too high compared to income → Reject
-        if loan_amount_raw > total_income * 20:
+                "risk_score": 100,
+                "main_issue": "Zero or negative income",
+                "coach_advice": "Income must be greater than zero. Please provide valid income information.",
+                "confidence": 95
+            }), 200
+        
+        if loan_amnt <= 0:
             return jsonify({
                 "status": "rejected",
-                "odds": 5,
-                "main_issue": "Loan amount exceeds income capacity",
-                "coach_advice": "The requested loan amount is disproportionately high relative to the applicant's income. Consider reducing the loan amount or increasing income documentation."
-            })
-
-        # ── Feature array ─────────────────────────────────────
-        features = np.array([[
-            gender_enc,
-            married_enc,
-            dependents,
-            education_enc,
-            self_emp_enc,
-            applicant_income,
-            coapplicant_income,
-            loan_amount,
-            loan_amount_term,
-            credit_history
-        ]])
-
-        # ── Prediction ────────────────────────────────────────
-        prediction_code = model.predict(features)[0]
-        probability     = model.predict_proba(features)[0]
-
-        bank_offers = []
-
-        if prediction_code == 1:
+                "odds": 0,
+                "risk_score": 100,
+                "main_issue": "Invalid loan amount",
+                "coach_advice": "Loan amount must be greater than zero.",
+                "confidence": 95
+            }), 200
+        
+        if loan_amnt > person_income * 10:
+            return jsonify({
+                "status": "rejected",
+                "odds": 15,
+                "risk_score": 85,
+                "main_issue": "Loan amount too high relative to income",
+                "coach_advice": f"Loan amount (₹{loan_amnt:,.0f}) is too high relative to income (₹{person_income:,.0f}). Consider reducing the loan amount.",
+                "confidence": 90
+            }), 200
+        
+        # ── Encode categorical features ────────────────────
+        home_enc = safe_encode(encoders.get("person_home_ownership"), person_home_ownership)
+        intent_enc = safe_encode(encoders.get("loan_intent"), loan_intent)
+        grade_enc = safe_encode(encoders.get("loan_grade"), loan_grade)
+        default_enc = safe_encode(encoders.get("cb_person_default_on_file"), cb_person_default_on_file)
+        
+        # ── Build feature array in correct order ────────────
+        # Order must match FEATURES from training
+        feature_values = {
+            'person_age': person_age,
+            'person_income': person_income,
+            'person_home_ownership': home_enc,
+            'person_emp_length': person_emp_length,
+            'loan_intent': intent_enc,
+            'loan_grade': grade_enc,
+            'loan_amnt': loan_amnt,
+            'loan_int_rate': loan_int_rate,
+            'loan_status': 0,  # Placeholder for features alignment
+            'loan_percent_income': loan_percent_income,
+            'cb_person_default_on_file': default_enc,
+            'cb_person_cred_hist_length': cb_person_cred_hist_length
+        }
+        
+        # Build features array in FEATURES order
+        features = []
+        for feature_name in FEATURES:
+            if feature_name in feature_values:
+                features.append(feature_values[feature_name])
+            else:
+                logger.warning(f"Feature {feature_name} not provided, using default value")
+                features.append(0)
+        
+        features = np.array([features])
+        
+        logger.info(f"Features shape: {features.shape}, FEATURES count: {len(FEATURES)}")
+        
+        # ── Make prediction ─────────────────────────────────
+        try:
+            prediction = model.predict(features)[0]
+            probabilities = model.predict_proba(features)[0]
+            
+            # probability[0] = class 0 (default/rejected)
+            # probability[1] = class 1 (approved)
+            odds = round(probabilities[1] * 100, 1) if len(probabilities) > 1 else 0
+            risk_score = round((1 - probabilities[1]) * 100, 1) if len(probabilities) > 1 else 100
+            
+            logger.info(f"Prediction: {prediction}, Odds: {odds}%, Risk: {risk_score}%")
+            
+        except Exception as e:
+            logger.error(f"Prediction error: {e}")
+            return jsonify({
+                "status": "error",
+                "odds": 0,
+                "risk_score": 50,
+                "main_issue": "Model prediction error",
+                "coach_advice": "An error occurred during prediction. Please try again.",
+                "confidence": 0
+            }), 500
+        
+        # ── Determine status and provide guidance ──────────
+        if prediction == 1:  # Approved
             status = "approved"
-            odds   = round(probability[1] * 100, 1)
-
-            # Bank suggestions based on confidence
-            if odds >= 85:
-                coach_advice = "Excellent financial profile. Strong income stability, clean credit history, and manageable loan burden. This borrower is recommended for premium interest rates."
+            
+            if odds >= 90:
+                main_issue = "None"
+                coach_advice = f"Excellent profile! Strong income (₹{person_income:,.0f}), low debt ratio ({loan_percent_income:.1%}), and positive credit indicators. Highly recommended for approval with premium terms."
                 bank_offers = [
-                    {"name": "State Bank of India", "interest": "8.25%", "type": "Public Sector", "icon": "building-columns"},
-                    {"name": "HDFC Bank", "interest": "8.50%", "type": "Private Sector", "icon": "landmark"},
-                    {"name": "ICICI Bank", "interest": "8.65%", "type": "Private Sector", "icon": "building"},
-                    {"name": "Bank of Baroda", "interest": "8.40%", "type": "Public Sector", "icon": "university"}
+                    {"name": "State Bank of India", "interest": "7.5% - 8.2%", "type": "Public Sector", "icon": "building-columns"},
+                    {"name": "HDFC Bank", "interest": "8.0% - 8.5%", "type": "Private Sector", "icon": "landmark"},
+                    {"name": "ICICI Bank", "interest": "8.2% - 8.8%", "type": "Private Sector", "icon": "building"},
                 ]
-            elif odds >= 70:
-                coach_advice = "Good financial profile with acceptable risk levels. Credit meets minimum thresholds. Monitor debt obligations and consider additional collateral for better rates."
+            elif odds >= 75:
+                main_issue = "None"
+                coach_advice = f"Good financial profile with acceptable risk. Income level (₹{person_income:,.0f}) supports the requested loan. Standard rates recommended."
                 bank_offers = [
-                    {"name": "Axis Bank", "interest": "9.25%", "type": "Private Sector", "icon": "building"},
-                    {"name": "Kotak Mahindra Bank", "interest": "9.50%", "type": "Private Sector", "icon": "landmark"},
-                    {"name": "Punjab National Bank", "interest": "8.90%", "type": "Public Sector", "icon": "building-columns"}
+                    {"name": "Axis Bank", "interest": "8.8% - 9.5%", "type": "Private Sector", "icon": "building"},
+                    {"name": "Kotak Mahindra Bank", "interest": "9.0% - 9.7%", "type": "Private Sector", "icon": "landmark"},
+                    {"name": "Punjab National Bank", "interest": "8.5% - 9.2%", "type": "Public Sector", "icon": "building-columns"}
                 ]
             else:
-                coach_advice = "Borderline approval. While the model predicts approval, the confidence is moderate. Consider strengthening the application with co-applicant income or additional documentation."
+                main_issue = "None"
+                coach_advice = f"Borderline approval. Moderate risk indicators detected. Ensure repayment capacity of ₹{loan_amnt/12:,.0f}/month. Consider providing additional collateral."
                 bank_offers = [
-                    {"name": "NBFC / Private Lenders", "interest": "11.5%", "type": "NBFC", "icon": "hand-holding-dollar"},
-                    {"name": "Bajaj Finserv", "interest": "12.0%", "type": "NBFC", "icon": "coins"}
+                    {"name": "Yes Bank", "interest": "10.0% - 11.0%", "type": "Private Sector", "icon": "building"},
+                    {"name": "NBFC Partners", "interest": "10.5% - 12.0%", "type": "NBFC", "icon": "hand-holding-dollar"}
                 ]
-        else:
+        
+        else:  # Rejected
             status = "rejected"
-            odds   = round(probability[0] * 100, 1)
-
-            if credit_history == 0:
-                main_issue = "Poor credit history"
-                coach_advice = "Credit history does not meet lending guidelines. This is the primary factor in the rejection. Recommend building credit history and clearing outstanding obligations before reapplying."
-            elif loan_amount_raw > total_income * 10:
-                main_issue = "High loan-to-income ratio"
-                coach_advice = "The loan amount is too high relative to reported income. Reducing the loan amount or providing additional income proof could improve approval chances."
+            bank_offers = []
+            
+            if cb_person_default_on_file == "Y":
+                main_issue = "Previous default on file"
+                coach_advice = "The credit profile shows a previous default. Resolve outstanding dues and rebuild credit history before reapplying."
+            elif loan_percent_income > 0.6:
+                main_issue = "High debt-to-income ratio"
+                coach_advice = f"Debt burden ({loan_percent_income:.1%}) is too high. Consider reducing loan amount or increasing income."
+            elif person_emp_length < 2:
+                main_issue = "Insufficient employment history"
+                coach_advice = "Employment tenure is too short (less than 2 years). Reapply after gaining more employment stability."
+            elif loan_grade in ['E', 'F']:
+                main_issue = "Poor loan grade"
+                coach_advice = "The loan has been graded as high-risk. Consider improving collateral or loan terms."
             else:
                 main_issue = "Multiple risk factors"
-                coach_advice = "The AI model detected multiple risk indicators in the financial profile. Consider improving credit score, reducing existing debt, and providing more comprehensive financial documentation."
-
-        # ── Build response ────────────────────────────────────
-        if status == "approved":
-            main_issue = "None"
-
+                coach_advice = "The AI model detected multiple risk indicators. Improve credit profile, reduce existing debt, and provide comprehensive financial documentation."
+        
+        # ── Build response ──────────────────────────────────
         response = {
             "status": status,
             "odds": odds,
+            "risk_score": risk_score,
             "main_issue": main_issue,
             "coach_advice": coach_advice,
-            "bank_offers": bank_offers
+            "bank_offers": bank_offers,
+            "confidence": abs(max(probabilities) - 0.5) * 200 if len(probabilities) > 0 else 50  # Confidence measure
         }
-
-        return jsonify(response)
-
+        
+        logger.info(f"Response: {response}")
+        return jsonify(response), 200
+    
     except Exception as e:
+        logger.error(f"Application processing error: {e}", exc_info=True)
         return jsonify({
-            "status": "rejected",
+            "status": "error",
             "odds": 0,
-            "main_issue": f"Processing error: {str(e)}",
-            "coach_advice": "An error occurred during analysis. Please verify all input fields contain valid numerical data and try again."
+            "risk_score": 50,
+            "main_issue": "Processing error",
+            "coach_advice": f"An error occurred: {str(e)}. Please verify all input fields contain valid data and try again.",
+            "confidence": 0
         }), 500
 
 
-# ─── Legacy Route: Predict (kept for backward compatibility) ─
+# ─── Legacy Route: Predict (backward compatibility) ──────────
 @app.route("/predict", methods=["POST"])
 def predict():
-    try:
-        # ── Collect form values ─────────────────────────────
-        gender           = request.form.get("gender", "Male")
-        married          = request.form.get("married", "No")
-        dependents_raw   = request.form.get("dependents", "0")
-        education        = request.form.get("education", "Graduate")
-        self_employed    = request.form.get("self_employed", "No")
-        applicant_income = float(request.form.get("applicant_income", 0))
-        coapplicant_income = float(request.form.get("coapplicant_income", 0))
-        loan_amount      = float(request.form.get("loan_amount", 0))
-        loan_amount_term = float(request.form.get("loan_amount_term", 360))
-        credit_history   = float(request.form.get("credit_history", 1))
-        total_income = applicant_income + coapplicant_income
+    """Legacy predict route - redirects to process_application"""
+    return process_application()
 
-        # ── Encode categorical values ───────────────────────
-        gender_enc    = safe_encode(encoders["Gender"], gender)
-        married_enc   = safe_encode(encoders["Married"], married)
-        education_enc = safe_encode(encoders["Education"], education)
-        self_emp_enc  = safe_encode(encoders["Self_Employed"], self_employed)
 
-        # Dependents: "3+" → 3
-        dependents = int(dependents_raw.replace("3+", "3"))
-
-        # ── Feature array ────────────────────────────────────
-        features = np.array([[
-            gender_enc,
-            married_enc,
-            dependents,
-            education_enc,
-            self_emp_enc,
-            applicant_income,
-            coapplicant_income,
-            loan_amount,
-            loan_amount_term,
-            credit_history
-        ]])
-
-        # Rule 1: No income → Reject
-        if total_income <= 0:
-            return render_template(
-                "index.html",
-                prediction="Loan Not Approved",
-                approved=False,
-                confidence=0,
-                bank_offers=[],
-                form_data=request.form
-            )
-
-        # Rule 2: Loan too high compared to income → Reject
-        if loan_amount > total_income * 20:
-           return render_template(
-              "index.html",
-               prediction="Loan Not Approved",
-               approved=False,
-               confidence=0,
-               bank_offers=[],
-               form_data=request.form
-            )
-
-        # ── Prediction ───────────────────────────────────────
-        prediction_code = model.predict(features)[0]
-        probability     = model.predict_proba(features)[0]
-
-        bank_offers = []
-
-        if prediction_code == 1:
-            result   = "Loan Approved"
-            approved = True
-            conf     = round(probability[1] * 100, 1)
-
-            # Bank suggestions based on confidence
-            if conf >= 85:
-                bank_offers = [
-                    {"name": "HDFC Bank", "interest": "8.5% - 9.2%"},
-                    {"name": "ICICI Bank", "interest": "8.7% - 9.5%"},
-                    {"name": "State Bank of India", "interest": "8.6% - 9.1%"}
-                ]
-            elif conf >= 70:
-                bank_offers = [
-                    {"name": "Axis Bank", "interest": "9.0% - 10.5%"},
-                    {"name": "Kotak Mahindra Bank", "interest": "9.2% - 10.8%"}
-                ]
-            else:
-                bank_offers = [
-                    {"name": "NBFC / Private Lenders", "interest": "10% - 14%"}
-                ]
-
-        else:
-            result   = "Loan Not Approved"
-            approved = False
-            conf     = round(probability[0] * 100, 1)
-
-        # ── Render page ──────────────────────────────────────
-        return render_template(
-            "index.html",
-            prediction=result,
-            approved=approved,
-            confidence=conf,
-            bank_offers=bank_offers,
-            form_data=request.form
-        )
-
-    except Exception as e:
-        return render_template(
-            "index.html",
-            prediction=f"Error: {str(e)}",
-            approved=False,
-            confidence=None,
-            bank_offers=[],
-            form_data=request.form
-        )
+# ─── Run Application ────────────────────────────────────────
+if __name__ == "__main__":
+    # Use port 5001 instead of 5000 (macOS AirPlay uses 5000)
+    app.run(debug=False, host="0.0.0.0", port=5001)
 
 
 # ─── Run App ─────────────────────────────────────────────────
