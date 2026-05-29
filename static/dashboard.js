@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const odds = Math.round(aiData.odds);
-    const riskScore = 100 - odds;
+    const riskScore = aiData.risk_score !== undefined ? Math.round(aiData.risk_score) : (100 - odds);
     const isApproved = aiData.status === "approved";
     const mainColor = isApproved ? '#10B981' : '#EF4444';
 
@@ -101,12 +101,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Fire all counters at once — they share the same rAF timing internally
+    const confidence = aiData.confidence || odds;
     animateCounter(
         document.getElementById('riskScoreValue'), riskScore, 1200,
         (v) => `${v}<span style="font-size:14px;color:#64748b;font-weight:500">/100</span>`
     );
-    animateCounter(document.getElementById('aiConfidenceValue'), odds, 1200, (v) => `${v}%`);
-    animateCounter(document.getElementById('gaugeValueText'), odds, 1200, (v) => `${v}%`);
+    animateCounter(document.getElementById('aiConfidenceValue'), confidence, 1200, (v) => `${v}%`);
+    animateCounter(document.getElementById('gaugeValueText'), confidence, 1200, (v) => `${v}%`);
     animateCounter(document.getElementById('displayIncome'), userData.income, 1500, formatMoney);
     animateCounter(document.getElementById('displayLoan'), userData.loan, 1500, formatMoney);
     animateCounter(document.getElementById('displayCredit'), userData.cibil, 1500, (v) => v);
