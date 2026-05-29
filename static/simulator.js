@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
         loan: 2500000, 
         cibil: 750,
         original_odds: 87,
+        original_risk: 13,
         missed_payments: 0
     };
 
@@ -19,12 +20,13 @@ document.addEventListener("DOMContentLoaded", () => {
         baseData.loan = parsed.user_inputs.loan || baseData.loan;
         baseData.cibil = parsed.user_inputs.cibil || baseData.cibil;
         baseData.original_odds = Math.round(parsed.ai_result.odds) || baseData.original_odds;
+        baseData.original_risk = parsed.ai_result.risk_score || (100 - baseData.original_odds);
         
         if (baseData.cibil < 650) baseData.missed_payments = 2;
         else if (baseData.cibil < 720) baseData.missed_payments = 1;
     }
 
-    const originalRisk = 100 - baseData.original_odds;
+    const originalRisk = baseData.original_risk;
 
     // ==========================================
     // 2. SETUP UI ELEMENTS
